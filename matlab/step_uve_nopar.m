@@ -1,17 +1,31 @@
-% Nonsplit scheme
+function [U_next, V_next, E_next, W] = step_uve_nopar(U,V,E,cellDens,kmm,cellHeights,sp);
+% This function integrates the Navier-Stokes equation with a simple scheme.
+% - Purely 3D, no mode splitting (therefore short time step is required
+%
+% The routine takes U, V and E states at a time t. It calculates and returns
+% vertical speeds W at time t, and updated U, V and E values for time t+dt.
+%
+% - Time integration is forward Euler.
+% - Advection of speeds (nonlinear terms) lacks subgrid
+%   approximation (therefore significant numerical diffusion).
+% - Molecular viscosities are neglected.
+% - Hydrostatic conditions are assumed.
+% - Eddy viscosities are included.
+
+imax = sp.imax;
+jmax = sp.jmax;
+kmax = sp.kmax;
+dx = sp.dx;
 
 % Iterate over layers from top to calculate pressure gradients:
-p_above = p_atm;
+p_above = sp.p_atm;
 for k=1:kmax
 
     % Compute pressure differential in whole layer:
-    cDens = zeros(imax,jmax);
     for i=1:imax
         for j=1:jmax
             if k<=kmm(i,j)
-                cellDens = dens(S(i,j,k), T(i,j,k));
-                cDens(i,j) = cellDens;
-                p_diff(i,j) = cellHeights(i,j,k)*9.81*cellDens;
+                p_diff(i,j) = cellHeights(i,j,k)*9.81*cellDens(i,j,k);
             else
                 p_diff(i,j) = 0;
             end
@@ -37,6 +51,7 @@ for k=1:kmax
                     p_gradx(i,j,k) = (p_above(i+1,j) + p_diff(i+1,j)*0.5*meanCellHeight/cellHeights(i+1,j,k) ...
                         - (p_above(i,j) + p_diff(i,j)*0.5*meanCellHeight/cellHeights(i,j,k)))/dx;
                 end
+
             end
         end
     end
@@ -65,6 +80,7 @@ end
 
 
 % Compute vertical speeds, from bottom up per horizontal location:
+W = zeros(imax,jmax,kmax+1);
 for i=2:imax-1
     for j=2:jmax-1
         W(i,j,kmm(i,j)+1) = 0; % No current through bottom
@@ -81,16 +97,16 @@ for i=2:imax-1
                 + V(i,j-1,k)*dx*meanHeightV(1) - V(i,j,k)*dx*meanHeightV(2);
             W(i,j,k) = flowDiff/(dx.^2);
             
-%             if i==33 & j==33 & k==1
-%                 
-%             end
+            if i==2 & j==33 & k==1
+                
+            end
         end
     end
 end
 
 % Based on the values in W(i,k,1), calculate new elevation:
 E_next = E;
-E_next(2:end-1,2:end-1) = E_next(2:end-1,2:end-1) + dt*W(2:end-1,2:end-1,1);
+E_next(2:end-1,2:end-1) = E_next(2:end-1,2:end-1) + sp.dt*W(2:end-1,2:end-1,1);
 
 % Compute u and v from momentum equation.
 % - neglecting viscosity 
@@ -162,10 +178,10 @@ for i=1:imax-1
                 
                 % Calculate updated U value:
                 U_next(i,j,k) = U_ij ...
-                    + dt*(-p_gradx(i,j,k)/rho_0 ... % Pressure term
+                    + sp.dt*(-p_gradx(i,j,k)/sp.rho_0 ... % Pressure term
                         - U_ij*dudx - V_mean*dudy - W_mean*dudz) ... % Advective terms
-                        + A_z*d2u_dz2 + A_xy*(d2u_dx2 + d2u_dy2) ... % Eddy viscosity
-                        + 2*omega*sin(phi(i,j))*V_mean; % Coriolis
+                        + sp.A_z*d2u_dz2 + sp.A_xy*(d2u_dx2 + d2u_dy2) ... % Eddy viscosity
+                        + 2*sp.omega*sin(sp.phi(i,j))*V_mean; % Coriolis
                     
 %                 if (i==2 | i==3) & j == 12 && k==1
 %                     U(i-1:i,j,k)
@@ -237,10 +253,10 @@ for i=1:imax
                 
                 % Calculate updated V value:
                 V_next(i,j,k) = V(i,j,k) ...
-                    + dt*(-p_grady(i,j,k)/rho_0 ... % Pressure term
+                    + sp.dt*(-p_grady(i,j,k)/sp.rho_0 ... % Pressure term
                         - V_ij*dvdy - U_mean*dvdx - W_mean*dvdz) ... % Advective terms
-                        + A_z*d2v_dz2 + A_xy*(d2v_dx2 + d2v_dy2) ... % Eddy viscosity
-                        - 2*omega*sin(phi(i,j))*U_mean; % Coriolis
+                        + sp.A_z*d2v_dz2 + sp.A_xy*(d2v_dx2 + d2v_dy2) ... % Eddy viscosity
+                        - 2*sp.omega*sin(sp.phi(i,j))*U_mean; % Coriolis
                     
             end
         end
@@ -253,7 +269,7 @@ for i=1:imax-1
         if ~isnan(p_gradx(i,j,1)) % Check if there is a valid current vector at this position
             % Surface cell, average height on cell border:
             dz_mean = 0.5*(cellHeights(i,j,1)+cellHeights(i+1,j,1));
-            U_next(i,j,1) = U_next(i,j,1) + dt*windStressU(i,j)/dz_mean;
+            U_next(i,j,1) = U_next(i,j,1) + sp.dt*sp.windStressU(i,j)/dz_mean;
             
             % Bottom friction. Apply at the minimum kmax of the
             % neighbouring cells. We need to calculate the absolute value
@@ -266,7 +282,7 @@ for i=1:imax-1
             v_values = [getUV(V,i,j-1,k,NaN) getUV(V,i+1,j-1,k,NaN) getUV(V,i,j,k,NaN) getUV(V,i+1,j,k,NaN)];
             meanV = mean(v_values(~isnan(v_values)));
             speed = sqrt(U(i,j,k).^2 + meanV.^2);
-            U_next(i,j,k) = U_next(i,j,k) - dt*C_b*U(i,j,k)*speed/dz_mean;    
+            U_next(i,j,k) = U_next(i,j,k) - sp.dt*sp.C_b*U(i,j,k)*speed/dz_mean;    
         end
     end
 end
@@ -276,7 +292,7 @@ for i=1:imax
         if ~isnan(p_grady(i,j,1)) % Check if there is a valid current vector at this position
             % Surface cell, average height on cell border:
             dz_mean = 0.5*(cellHeights(i,j,1)+cellHeights(i,j+1,1));
-            V_next(i,j,1) = V_next(i,j,1) + dt*windStressV(i,j)/dz_mean;
+            V_next(i,j,1) = V_next(i,j,1) + sp.dt*sp.windStressV(i,j)/dz_mean;
             
             % Bottom friction. Apply at the minimum kmax of the
             % neighbouring cells. We need to calculate the absolute value
@@ -289,7 +305,7 @@ for i=1:imax
             u_values = [getUV(U,i-1,j,k,NaN) getUV(U,i-1,j+1,k,NaN) getUV(U,i,j,k,NaN) getUV(U,i,j+1,k,NaN)];
             meanU = mean(u_values(~isnan(u_values)));
             speed = sqrt(V(i,j,k).^2 + meanU.^2);
-            V_next(i,j,k) = V_next(i,j,k) - dt*C_b*V(i,j,k)*speed/dz_mean;
+            V_next(i,j,k) = V_next(i,j,k) - sp.dt*sp.C_b*V(i,j,k)*speed/dz_mean;
         end
     end
 end 

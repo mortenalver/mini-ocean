@@ -1,10 +1,3 @@
-% Grid setup:
-imax = 2*22%60;
-jmax = 2*10%50;
-kmax = 7;
-
-dx = 4000; % Horizontal resolution (x/y) (m)
-dz = [5; 5; 10; 10; 10; 20; 20]; % Vertical size of layers (m)
 
 
 % ---------------------------------------------------------------------------
@@ -17,6 +10,7 @@ depth = zeros(imax,jmax);
 kmm = zeros(imax,jmax);
 dzz = zeros(imax,jmax,kmax);
 cellHeights = zeros(imax,jmax,kmax);
+cellDens = zeros(imax,jmax,kmax);
 % cellHeightsU = zeros(imax-1,jmax,kmax);
 % cellHeightsV = zeros(imax,jmax-1,kmax);
 % States:
@@ -27,9 +21,6 @@ W = zeros(imax,jmax,kmax+1);
 T = zeros(imax,jmax,kmax);
 S = zeros(imax,jmax,kmax);
 
-% ---------------------------------------------------------------------------
-% Boundaries:
-p_atm = 101000*ones(imax,jmax); % Atmospheric pressure (Pa)
 
 % ---------------------------------------------------------------------------
 % Some temporary variables:

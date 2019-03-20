@@ -1,10 +1,14 @@
+% TODO: check if rho_0 needs to go into surface and bottom stress terms
+% TODO: parameterize wind stress
+% TODO: horizontal mixing of tracers
+% TODO: vertical mixing of tracers
+    
 tic
-init_grid;
 init_ocean;
 init_simparam;
 
 filename = 'test.nc';
-ncid = initSaveFile(filename,imax,jmax,kmax);
+ncid = initSaveFile(filename,imax,jmax,kmax,depth,layerDepths);
 
 E0 = E;
 
@@ -12,26 +16,30 @@ E0 = E;
 %vidObj.FrameRate=23;
 %open(vidObj);
 
-h = figure
-set(gcf,'position', [100 100 1500 1100])
+firstPl = 1;
+
 plotint = 10;
-saveInt = saveIntS/dt;
+saveInt = sp.saveIntS/sp.dt;
 saveCount = 0;
 plotLayer = 3;
 count = 0, count2 = 0;
-nSamples = floor(t_end/dt);
+nSamples = floor(sp.t_end/sp.dt);
 
 for sample=1:nSamples
     % This section handles the stepping of the whole model:
     set_bounds; % Update boundary values
     updateCellHeights; % Update cell heights matrix based on current elevation
-    addFreshwater; % Add fresh water from rivers
-    step_uve_nopar; % Integrate the U, V and E states into U_next, V_next and E_next,
-        % and calculate W from the current U and V values.
-    trc = T; advectTempSalt_nopar; T_next = trc_next; % Advection of temperature, into T_next
-    trc = S; advectTempSalt_nopar; S_next = trc_next; % Advection of salinity, into S_next
-    % TODO: horizontal mixing of tracers
-    % TODO: vertical mixing of tracers
+    updateCellDensities;
+    if sp.freshwaterOn > 0
+        addFreshwater; % Add fresh water from rivers
+    end
+    % Integrate the U, V and E states into U_next, V_next and E_next,
+    % and calculate W from the current U and V values:
+    [U_next, V_next, E_next, W] = step_uve_nopar(U,V,E,cellDens,kmm,cellHeights,sp);
+       
+    % Call advection function for temperature and salinity:
+    T_next = advectTempSalt_nopar(T,U,V,W,kmm,cellHeights,sp);
+    S_next = advectTempSalt_nopar(S,U,V,W,kmm,cellHeights,sp);
     
     % Update all state values for next time step:
     U = U_next;
@@ -46,7 +54,7 @@ for sample=1:nSamples
     saveCount = saveCount+1;
     if saveCount == saveInt
         saveCount = 0;
-        saveState(filename, imax, jmax, kmax, dt*sample, U, V, E, T, S);
+        saveState(filename, imax, jmax, kmax, sp.dt*sample, U, V, E, T, S);
     end
     
     % Check if we should update plots:
@@ -54,6 +62,12 @@ for sample=1:nSamples
     if count == plotint
         count2 = count2+1;
         count = 0;
+        
+        if firstPl > 0
+            firstPl = 0;
+            h = figure;
+            set(gcf,'position', [100 100 1500 1100]);
+        end
         %subplot(2,3,count2), 
         %pcolor(E'), colorbar
         %mesh(E');
@@ -80,7 +94,7 @@ for sample=1:nSamples
         inds = depth==0;
         S_mrk = S(:,:,1); S_mrk(inds) = NaN;
         pcolor(S_mrk'), shading flat, colorbar
-        title(['Salinity k=1, t=' num2str(sample*dt)]);
+        title(['Salinity k=1, t=' num2str(sample*sp.dt)]);
         subplot(2,2,2)
         [uu,vv, t1, t2] = interpolateUV(U(:,:,1), V(:,:,1), subs);
         

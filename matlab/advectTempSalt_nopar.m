@@ -1,3 +1,10 @@
+function trc_next = advectTempSalt_nopar(trc,U,V,W,kmm,cellHeights,sp);
+
+imax = sp.imax;
+jmax = sp.jmax;
+kmax = sp.kmax;
+dx = sp.dx;
+
 % Based on current speeds U, V and W, 
 % update the temperature and salt fields, T and S.
 
@@ -39,7 +46,7 @@ for i=2:imax-1
                     advS = advS - W(i,j,k-1)*dx*dx*(trc(i,j,k-1)-trc(i,j,k)); 
                 end
             end
-            trc_next(i,j,k) = trc(i,j,k) + dt*advS/(dx*dx*cellHeights(i,j,k));
+            trc_next(i,j,k) = trc(i,j,k) + sp.dt*advS/(dx*dx*cellHeights(i,j,k));
         end
     end
 end
