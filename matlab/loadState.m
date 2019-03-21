@@ -1,5 +1,7 @@
 
-function [U, V, E, T, S] = loadState(filename, sample);
+function [os, layerDepths] = loadState(filename, sample);
+
+os = OceanState();
 
 ncid = netcdf.open(filename,'NOWRITE');
 if sample < 0
@@ -15,10 +17,11 @@ zcD = netcdf.inqDimID(ncid,'zc');
 [~, kmax] = netcdf.inqDim(ncid,zcD);
 sample
 
-U = netcdf.getVar(ncid, netcdf.inqVarID(ncid, 'U'), [0 0 0 sample], [imax jmax kmax 1]);
-U = U(1:end-1,:,:);
-V = netcdf.getVar(ncid, netcdf.inqVarID(ncid, 'V'), [0 0 0 sample], [imax jmax kmax 1]);
-V = V(:,1:end-1,:);
-E = netcdf.getVar(ncid, netcdf.inqVarID(ncid, 'E'), [0 0 sample], [imax jmax 1]);
-T = netcdf.getVar(ncid, netcdf.inqVarID(ncid, 'T'), [0 0 0 sample], [imax jmax kmax 1]);
-S = netcdf.getVar(ncid, netcdf.inqVarID(ncid, 'S'), [0 0 0 sample], [imax jmax kmax 1]);
+os.U = netcdf.getVar(ncid, netcdf.inqVarID(ncid, 'U'), [0 0 0 sample], [imax jmax kmax 1]);
+os.U = os.U(1:end-1,:,:);
+os.V = netcdf.getVar(ncid, netcdf.inqVarID(ncid, 'V'), [0 0 0 sample], [imax jmax kmax 1]);
+os.V = os.V(:,1:end-1,:);
+os.E = netcdf.getVar(ncid, netcdf.inqVarID(ncid, 'E'), [0 0 sample], [imax jmax 1]);
+os.T = netcdf.getVar(ncid, netcdf.inqVarID(ncid, 'T'), [0 0 0 sample], [imax jmax kmax 1]);
+os.S = netcdf.getVar(ncid, netcdf.inqVarID(ncid, 'S'), [0 0 0 sample], [imax jmax kmax 1]);
+layerDepths = netcdf.getVar(ncid, netcdf.inqVarID(ncid, 'zc'));

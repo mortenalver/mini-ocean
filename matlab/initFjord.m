@@ -25,6 +25,8 @@ depth(iinds,jinds) = 45*ones(size(depth(iinds,jinds)));
 profDepths = [0 2 4 6 8 10 15 20 25 30 40];
 temp = [12 11.5 11 10.5 10.2 10.1 10 9.9 9.8 9.75 9.74];
 salt = [20 21 22 23 25 26 30 31 31.5 31.88 31.885];
+temp = (9.71 + 12) - temp;
+salt = (20+31.885) - salt;
 % Intepolate measurements to mid layer depths:
 t_int = interp1(profDepths, temp, midLayerDepths,'linear','extrap');
 s_int = interp1(profDepths, salt, midLayerDepths,'linear','extrap');
@@ -36,8 +38,8 @@ for i=1:imax
 
         % 3D variables:
         for k=1:kmax
-            T(i,j,k) = t_int(k);
-            S(i,j,k) = s_int(k);
+            os.T(i,j,k) = t_int(k);
+            os.S(i,j,k) = s_int(k);
         end
     end
 end

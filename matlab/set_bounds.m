@@ -7,7 +7,7 @@ e_val = 0.25;
 %     E(i,end) = e_val*(imax*0.5-i)/imax;
 % end
 
-E(1,:) = sin(1*sample*sp.dt*2*pi/(12*3600));
+os.E(1,:) = sin(1*sample*sp.dt*2*pi/(12*3600));
 %E(1,1:8) = sin(1*sample*sp.dt*2*pi/(12*3600));
 %E(1,9:end) = 0*E(1,9:end);
 

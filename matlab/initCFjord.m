@@ -38,8 +38,8 @@ for i=1:imax
 
         % 3D variables:
         for k=1:kmax
-            T(i,j,k) = t_int(k);
-            S(i,j,k) = s_int(k);
+            os.T(i,j,k) = t_int(k);
+            os.S(i,j,k) = s_int(k);
         end
     end
 end

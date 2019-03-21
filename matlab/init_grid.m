@@ -9,17 +9,17 @@ midLayerDepths = layerDepths - 0.5*dz;
 depth = zeros(imax,jmax);
 kmm = zeros(imax,jmax);
 dzz = zeros(imax,jmax,kmax);
-cellHeights = zeros(imax,jmax,kmax);
-cellDens = zeros(imax,jmax,kmax);
+
 % cellHeightsU = zeros(imax-1,jmax,kmax);
 % cellHeightsV = zeros(imax,jmax-1,kmax);
 % States:
-E = zeros(imax,jmax);
-U = zeros(imax-1,jmax,kmax);
-V = zeros(imax,jmax-1,kmax);
-W = zeros(imax,jmax,kmax+1);
-T = zeros(imax,jmax,kmax);
-S = zeros(imax,jmax,kmax);
+os = OceanState();
+os.E = zeros(imax,jmax);
+os.U = zeros(imax-1,jmax,kmax);
+os.V = zeros(imax,jmax-1,kmax);
+os.W = zeros(imax,jmax,kmax+1);
+os.T = zeros(imax,jmax,kmax);
+os.S = zeros(imax,jmax,kmax);
 
 
 % ---------------------------------------------------------------------------
@@ -30,8 +30,8 @@ p_mid = zeros(imax,jmax);
 p_gradx = zeros(imax-1, jmax,kmax);
 p_grady = zeros(imax, jmax-1,kmax);
 
-U_next = zeros(size(U));
-V_next = zeros(size(V));
-E_next = zeros(size(E));
-S_next = zeros(size(S));
-T_next = zeros(size(T));
+os.U_next = zeros(size(os.U));
+os.V_next = zeros(size(os.V));
+os.E_next = zeros(size(os.E));
+os.S_next = zeros(size(os.S));
+os.T_next = zeros(size(os.T));
