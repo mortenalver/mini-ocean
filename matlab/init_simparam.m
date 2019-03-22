@@ -5,7 +5,7 @@ sp.coriolisOn = 1;
 
 % Time:
 sp.dt = 2.5; % Time step (s)
-sp.t_end = 3600*24+sp.dt; % Duration of simulation
+sp.t_end = 3600*24*10+sp.dt; % Duration of simulation
 
 % Coriolis parameters:
 sp.omega = 0.7292e-4; % Earth rotational speed (rad/s)
@@ -14,10 +14,13 @@ if sp.coriolisOn==0
     sp.phi = 0*phi;
 end
 
-% Atmo:
+% Atmosphere/waves:
 sp.p_atm = 101000*ones(imax,jmax); % Atmospheric pressure (Pa)
 sp.windStressU = 0*ones(size(os.U(:,:,1)));
 sp.windStressV = 0*0.0005*ones(size(os.V(:,:,1))); % Wind stress. 
+sp.H_wave = 0.5; % Wave height (m)
+sp.T_wave = 3; % Wave period (s)
+
 
 
 % Constant density used in momentum equation
@@ -37,4 +40,4 @@ sp.A_z = 10*1e-2; % Vertical eddy viscosity
 
 % Storage:
 sp.filename = 'test.nc';
-sp.saveIntS = 1*3600;
+sp.saveIntS = 6*3600;

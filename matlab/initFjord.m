@@ -1,8 +1,8 @@
 imax = 20;
 jmax = 10;
-kmax = 7;
+kmax = 9;
 dx = 1000; % Horizontal resolution (x/y) (m)
-dz = [10; 10; 20; 20; 20; 20; 50]; % Vertical size of layers (m)
+dz = [5; 5; 10; 10; 20; 20; 20; 20; 50]; % Vertical size of layers (m)
 init_grid;
         
 depth = 150*ones(imax,jmax);
@@ -25,8 +25,8 @@ depth(iinds,jinds) = 45*ones(size(depth(iinds,jinds)));
 profDepths = [0 2 4 6 8 10 15 20 25 30 40];
 temp = [12 11.5 11 10.5 10.2 10.1 10 9.9 9.8 9.75 9.74];
 salt = [20 21 22 23 25 26 30 31 31.5 31.88 31.885];
-temp = (9.71 + 12) - temp;
-salt = (20+31.885) - salt;
+%temp = (9.71 + 12) - temp;
+%salt = (20+31.885) - salt;
 % Intepolate measurements to mid layer depths:
 t_int = interp1(profDepths, temp, midLayerDepths,'linear','extrap');
 s_int = interp1(profDepths, salt, midLayerDepths,'linear','extrap');
@@ -46,8 +46,8 @@ end
 
 
 % Freshwater
-riverXY = [imax-1 2; imax-1, jmax-1];
+riverXY = [imax-1 2; imax-1, floor(jmax/2); imax-1, jmax-1];
 % riverXY = [21 2; 28 8; 53 13];
-riverS = [0; 0];
-riverT = [6; 6];
-riverFlow = [500; 500]; % m3/s
+riverS = [0; 0; 0];
+riverT = [12; 12; 12];
+riverFlow = [500; 500; 500]; % m3/s

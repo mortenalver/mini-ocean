@@ -1,4 +1,4 @@
-function os = step_uve_nopar(os,cellDens,kmm,cellHeights,sp);
+function os = step_uve_nopar(os,kmm,sp);
 % This function integrates the Navier-Stokes equation with a simple scheme.
 % - Purely 3D, no mode splitting (therefore short time step is required
 %
@@ -11,7 +11,6 @@ function os = step_uve_nopar(os,cellDens,kmm,cellHeights,sp);
 % - Molecular viscosities are neglected.
 % - Hydrostatic conditions are assumed.
 % - Eddy viscosities are included.
-
 imax = sp.imax;
 jmax = sp.jmax;
 kmax = sp.kmax;
@@ -25,7 +24,7 @@ for k=1:kmax
     for i=1:imax
         for j=1:jmax
             if k<=kmm(i,j)
-                p_diff(i,j) = cellHeights(i,j,k)*9.81*cellDens(i,j,k);
+                p_diff(i,j) = os.cellHeights(i,j,k)*9.81*os.rho(i,j,k);
             else
                 p_diff(i,j) = 0;
             end
@@ -36,39 +35,39 @@ for k=1:kmax
     % gradient is evaluated at the mid height *at the boundary*. This means
     % we need to measure from below in the surface layer, and from above in
     % other layers to find the appropriate pressure.
-    for i=1:imax-1
+    parfor i=1:imax-1
         for j=1:jmax
             % For the gradient to be valid, both bordering cells must be
             % wet. If not, set p_gradx to NaN:
             if kmm(i,j)<k | kmm(i+1,j)<k
                 p_gradx(i,j,k) = NaN;
             else
-                meanCellHeight = 0.5*(cellHeights(i,j,k) + cellHeights(i+1,j,k)); % height measured from below
+                meanCellHeight = 0.5*(os.cellHeights(i,j,k) + os.cellHeights(i+1,j,k)); % height measured from below
                 if k == 1 % Surface layer:
-                    p_gradx(i,j,k) = (p_above(i+1,j) + p_diff(i+1,j)*(cellHeights(i+1,j,k)-0.5*meanCellHeight)/cellHeights(i+1,j,k) ...
-                        - (p_above(i,j) + p_diff(i,j)*(cellHeights(i,j,k)-0.5*meanCellHeight)/cellHeights(i,j,k)))/dx;
+                    p_gradx(i,j,k) = (p_above(i+1,j) + p_diff(i+1,j)*(os.cellHeights(i+1,j,k)-0.5*meanCellHeight)/os.cellHeights(i+1,j,k) ...
+                        - (p_above(i,j) + p_diff(i,j)*(os.cellHeights(i,j,k)-0.5*meanCellHeight)/os.cellHeights(i,j,k)))/dx;
                 else % Mid or bottom layer:
-                    p_gradx(i,j,k) = (p_above(i+1,j) + p_diff(i+1,j)*0.5*meanCellHeight/cellHeights(i+1,j,k) ...
-                        - (p_above(i,j) + p_diff(i,j)*0.5*meanCellHeight/cellHeights(i,j,k)))/dx;
+                    p_gradx(i,j,k) = (p_above(i+1,j) + p_diff(i+1,j)*0.5*meanCellHeight/os.cellHeights(i+1,j,k) ...
+                        - (p_above(i,j) + p_diff(i,j)*0.5*meanCellHeight/os.cellHeights(i,j,k)))/dx;
                 end
 
             end
         end
     end
-    for i=1:imax
+    parfor i=1:imax
         for j=1:jmax-1
             % For the gradient to be valid, both bordering cells must be
             % wet. If not, set p_grady to NaN:
             if kmm(i,j)<k | kmm(i,j+1)<k
                 p_grady(i,j,k) = NaN;
             else
-                meanCellHeight = 0.5*(cellHeights(i,j,k) + cellHeights(i,j+1,k)); % height measured from below
+                meanCellHeight = 0.5*(os.cellHeights(i,j,k) + os.cellHeights(i,j+1,k)); % height measured from below
                 if k == 1 % Surface layer
-                    p_grady(i,j,k) = (p_above(i,j+1) + p_diff(i,j+1)*(cellHeights(i,j+1,k)-0.5*meanCellHeight)/cellHeights(i,j+1,k) ...
-                        - (p_above(i,j) + p_diff(i,j)*(cellHeights(i,j,k)-0.5*meanCellHeight)/cellHeights(i,j,k)))/dx;
+                    p_grady(i,j,k) = (p_above(i,j+1) + p_diff(i,j+1)*(os.cellHeights(i,j+1,k)-0.5*meanCellHeight)/os.cellHeights(i,j+1,k) ...
+                        - (p_above(i,j) + p_diff(i,j)*(os.cellHeights(i,j,k)-0.5*meanCellHeight)/os.cellHeights(i,j,k)))/dx;
                 else
-                    p_grady(i,j,k) = (p_above(i,j+1) + p_diff(i,j+1)*0.5*meanCellHeight/cellHeights(i,j+1,k) ...
-                        - (p_above(i,j) + p_diff(i,j)*0.5*meanCellHeight/cellHeights(i,j,k)))/dx;
+                    p_grady(i,j,k) = (p_above(i,j+1) + p_diff(i,j+1)*0.5*meanCellHeight/os.cellHeights(i,j+1,k) ...
+                        - (p_above(i,j) + p_diff(i,j)*0.5*meanCellHeight/os.cellHeights(i,j,k)))/dx;
                 end
             end
         end
@@ -90,16 +89,14 @@ for i=2:imax-1
             
             % Calculate mean cell heights on both borders in x and y
             % direction, to find areas of cell interfaces:
-            meanHeightU = [0.5*(cellHeights(i-1,j,k) + cellHeights(i,j,k)) 0.5*(cellHeights(i,j,k) + cellHeights(i+1,j,k))];
-            meanHeightV = [0.5*(cellHeights(i,j-1,k) + cellHeights(i,j,k)) 0.5*(cellHeights(i,j,k) + cellHeights(i,j+1,k))];
+            meanHeightU = [0.5*(os.cellHeights(i-1,j,k) + os.cellHeights(i,j,k)) 0.5*(os.cellHeights(i,j,k) + os.cellHeights(i+1,j,k))];
+            meanHeightV = [0.5*(os.cellHeights(i,j-1,k) + os.cellHeights(i,j,k)) 0.5*(os.cellHeights(i,j,k) + os.cellHeights(i,j+1,k))];
+            
             flowDiff = os.W(i,j,k+1)*dx.^2 ...
                 + os.U(i-1,j,k)*dx*meanHeightU(1) - os.U(i,j,k)*dx*meanHeightU(2) ...
                 + os.V(i,j-1,k)*dx*meanHeightV(1) - os.V(i,j,k)*dx*meanHeightV(2);
             os.W(i,j,k) = flowDiff/(dx.^2);
             
-            if i==2 & j==33 & k==1
-                
-            end
         end
     end
 end
@@ -113,7 +110,7 @@ os.E_next(2:end-1,2:end-1) = os.E_next(2:end-1,2:end-1) + sp.dt*os.W(2:end-1,2:e
 % - including Coriolis, but neglecting w term in u equation 
 os.U_next = 0*os.U_next;
 os.V_next = 0*os.V_next;
-for i=1:imax-1
+parfor i=1:imax-1
     for j=1:jmax
         for k=1:kmax
             if isnan(p_gradx(i,j,k))
@@ -148,27 +145,27 @@ for i=1:imax-1
                 W_mean = mean(W_values(~isnan(W_values)));
                 if W_mean > 0
                     if k<kmax
-                        dudz = (U_ij - getUV(os.U,i,j,k+1,U_ij))/(0.5*(cellHeights(i,j,k)+cellHeights(i,j,k+1)));
+                        dudz = (U_ij - getUV(os.U,i,j,k+1,U_ij))/(0.5*(os.cellHeights(i,j,k)+os.cellHeights(i,j,k+1)));
                     else
                         dudz = 0;
                     end
                 else
                     if k>1
-                        dudz = (getUV(os.U,i,j,k-1,U_ij) - U_ij)/(0.5*(cellHeights(i,j,k)+cellHeights(i,j,k-1)));
+                        dudz = (getUV(os.U,i,j,k-1,U_ij) - U_ij)/(0.5*(os.cellHeights(i,j,k)+os.cellHeights(i,j,k-1)));
                     else
                         dudz = 0;
                     end
                 end
                 % Estimate the local d2u/dz2 (double derivative):
                 if k>1
-                    dz_up = 0.5*(cellHeights(i,j,k)+cellHeights(i,j,k-1));
+                    dz_up = 0.5*(os.cellHeights(i,j,k)+os.cellHeights(i,j,k-1));
                 else
-                    dz_up = cellHeights(i,j,k);
+                    dz_up = os.cellHeights(i,j,k);
                 end
                 if k<kmax
-                    dz_down = 0.5*(cellHeights(i,j,k)+cellHeights(i,j,k+1));
+                    dz_down = 0.5*(os.cellHeights(i,j,k)+os.cellHeights(i,j,k+1));
                 else
-                    dz_down = cellHeights(i,j,k);
+                    dz_down = os.cellHeights(i,j,k);
                 end
                 d2u_dz2 = ((getUV(os.U,i,j,k-1,U_ij) - U_ij)/dz_up - (U_ij - getUV(os.U,i,j,k+1,U_ij))/dz_down)/(0.5*(dz_up+dz_down));
                 % Estimate the local d2u/dx2 (double derivative):
@@ -191,7 +188,7 @@ for i=1:imax-1
         end
     end
 end
-for i=1:imax
+parfor i=1:imax
     for j=1:jmax-1
         for k=1:kmax
             if isnan(p_grady(i,j,k))
@@ -223,27 +220,27 @@ for i=1:imax
                 W_mean = mean(W_values(~isnan(W_values)));
                 if W_mean > 0
                     if k<kmax
-                        dvdz = (V_ij - getUV(os.V,i,j,k+1,V_ij))/(0.5*(cellHeights(i,j,k)+cellHeights(i,j,k+1)));
+                        dvdz = (V_ij - getUV(os.V,i,j,k+1,V_ij))/(0.5*(os.cellHeights(i,j,k)+os.cellHeights(i,j,k+1)));
                     else
                         dvdz = 0;
                     end
                 else
                     if k>1
-                        dvdz = (getUV(os.V,i,j,k-1,V_ij) - V_ij)/(0.5*(cellHeights(i,j,k)+cellHeights(i,j,k-1)));
+                        dvdz = (getUV(os.V,i,j,k-1,V_ij) - V_ij)/(0.5*(os.cellHeights(i,j,k)+os.cellHeights(i,j,k-1)));
                     else
                         dvdz = 0;
                     end
                 end
                 % Estimate the local d2v/dz2 (double derivative):
                 if k>1
-                    dz_up = 0.5*(cellHeights(i,j,k)+cellHeights(i,j,k-1));
+                    dz_up = 0.5*(os.cellHeights(i,j,k)+os.cellHeights(i,j,k-1));
                 else
-                    dz_up = cellHeights(i,j,k);
+                    dz_up = os.cellHeights(i,j,k);
                 end
                 if k<kmax
-                    dz_down = 0.5*(cellHeights(i,j,k)+cellHeights(i,j,k+1));
+                    dz_down = 0.5*(os.cellHeights(i,j,k)+os.cellHeights(i,j,k+1));
                 else
-                    dz_down = cellHeights(i,j,k);
+                    dz_down = os.cellHeights(i,j,k);
                 end
                 d2v_dz2 = ((getUV(os.V,i,j,k-1,V_ij) - V_ij)/dz_up - (V_ij - getUV(os.V,i,j,k+1,V_ij))/dz_down)/(0.5*(dz_up+dz_down));
                 % Estimate the local d2v/dx2 (double derivative):
@@ -268,7 +265,7 @@ for i=1:imax-1
     for j=1:jmax
         if ~isnan(p_gradx(i,j,1)) % Check if there is a valid current vector at this position
             % Surface cell, average height on cell border:
-            dz_mean = 0.5*(cellHeights(i,j,1)+cellHeights(i+1,j,1));
+            dz_mean = 0.5*(os.cellHeights(i,j,1)+os.cellHeights(i+1,j,1));
             os.U_next(i,j,1) = os.U_next(i,j,1) + sp.dt*sp.windStressU(i,j)/dz_mean;
             
             % Bottom friction. Apply at the minimum kmax of the
@@ -277,7 +274,7 @@ for i=1:imax-1
             % values:
             k = min(kmm(i,j), kmm(i+1,j));
             % Bottom cell, average height on cell border:
-            dz_mean = 0.5*(cellHeights(i,j,k)+cellHeights(i+1,j,k));
+            dz_mean = 0.5*(os.cellHeights(i,j,k)+os.cellHeights(i+1,j,k));
             % V value interpolated here:
             v_values = [getUV(os.V,i,j-1,k,NaN) getUV(os.V,i+1,j-1,k,NaN) getUV(os.V,i,j,k,NaN) getUV(os.V,i+1,j,k,NaN)];
             meanV = mean(v_values(~isnan(v_values)));
@@ -291,7 +288,7 @@ for i=1:imax
     for j=1:jmax-1
         if ~isnan(p_grady(i,j,1)) % Check if there is a valid current vector at this position
             % Surface cell, average height on cell border:
-            dz_mean = 0.5*(cellHeights(i,j,1)+cellHeights(i,j+1,1));
+            dz_mean = 0.5*(os.cellHeights(i,j,1)+os.cellHeights(i,j+1,1));
             os.V_next(i,j,1) = os.V_next(i,j,1) + sp.dt*sp.windStressV(i,j)/dz_mean;
             
             % Bottom friction. Apply at the minimum kmax of the
@@ -300,7 +297,7 @@ for i=1:imax
             % values:
             k = min(kmm(i,j), kmm(i,j+1));
             % Bottom cell, average height on cell border:
-            dz_mean = 0.5*(cellHeights(i,j,k)+cellHeights(i,j+1,k));
+            dz_mean = 0.5*(os.cellHeights(i,j,k)+os.cellHeights(i,j+1,k));
             % U value interpolated here:
             u_values = [getUV(os.U,i-1,j,k,NaN) getUV(os.U,i-1,j+1,k,NaN) getUV(os.U,i,j,k,NaN) getUV(os.U,i,j+1,k,NaN)];
             meanU = mean(u_values(~isnan(u_values)));

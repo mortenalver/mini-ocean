@@ -11,7 +11,6 @@ function os = step_uve_nopar(os,kmm,sp);
 % - Molecular viscosities are neglected.
 % - Hydrostatic conditions are assumed.
 % - Eddy viscosities are included.
-
 imax = sp.imax;
 jmax = sp.jmax;
 kmax = sp.kmax;
@@ -92,6 +91,7 @@ for i=2:imax-1
             % direction, to find areas of cell interfaces:
             meanHeightU = [0.5*(os.cellHeights(i-1,j,k) + os.cellHeights(i,j,k)) 0.5*(os.cellHeights(i,j,k) + os.cellHeights(i+1,j,k))];
             meanHeightV = [0.5*(os.cellHeights(i,j-1,k) + os.cellHeights(i,j,k)) 0.5*(os.cellHeights(i,j,k) + os.cellHeights(i,j+1,k))];
+            
             flowDiff = os.W(i,j,k+1)*dx.^2 ...
                 + os.U(i-1,j,k)*dx*meanHeightU(1) - os.U(i,j,k)*dx*meanHeightU(2) ...
                 + os.V(i,j-1,k)*dx*meanHeightV(1) - os.V(i,j,k)*dx*meanHeightV(2);

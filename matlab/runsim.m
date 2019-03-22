@@ -83,55 +83,9 @@ for sample=1:nSamples
                 h = figure;
                 set(gcf,'position', [100 100 1500 1100]);
             end
-            %subplot(2,3,count2), 
-            %pcolor(E'), colorbar
-            %mesh(E');
-            %subplot(1,2,1), mesh(U(:,:,1)');
-            %subplot(1,2,2), mesh(V(:,:,1)');
 
-    %         [uu,vv] = interpolateUV(U(:,:,1), V(:,:,1), 2);
-    %         subplot(2,2,1), quiver(uu',vv'); %mesh(U(:,:,1)');
-    %         title(num2str(sample*dt));
-    %         [uu,vv] = interpolateUV(U(:,:,2), V(:,:,2), 2);
-    %         subplot(2,2,2), quiver(uu',vv'); %mesh(U(:,:,1)');
-    %         [uu,vv] = interpolateUV(U(:,:,3), V(:,:,3), 2);
-    %         subplot(2,2,3), quiver(uu',vv'); %&mesh(E')
-    %         [uu,vv] = interpolateUV(U(:,:,4), V(:,:,4), 2);
-    %         subplot(2,2,4), quiver(uu',vv'); %&mesh(E')
-
-            subs = 1;
-            subplot(2,2,1)%, pcolor(S(:,:,2)'), shading flat, colorbar
-    %         [uu,vv, t1, t2] = interpolateUV(U(:,:,1), V(:,:,1), subs);
-    %          pcolor(t1', t2', sqrt(uu.^2 + vv.^2)'), shading flat, colorbar
-    %         hold on, quiver(t1'+subs*0.5,t2'+subs*0.5, uu',vv');
-    %         title(['t=' num2str(sample*dt)]);
-
-            inds = depth==0;
-            %S_mrk = os.S(:,:,1); S_mrk(inds) = NaN;
-            S_mrk = permute(os.S(:,5,:),[3 1 2])';
-            pcolor(S_mrk'), shading flat, colorbar, set(gca,'YDir','reverse');
-            title(['Salinity k=1, t=' num2str(sample*sp.dt)]);
-            subplot(2,2,2)
-            [uu,vv, t1, t2] = interpolateUV(os.U(:,:,1), os.V(:,:,1), subs);
-
-            uu(inds) = NaN;
-            vv(inds) = NaN;
-             pcolor(t1', t2', sqrt(uu.^2 + vv.^2)'), shading flat, colorbar
-            hold on, quiver(t1'+subs*0.5,t2'+subs*0.5, uu',vv','k'); %mesh(U(:,:,1)');
-            title('Current');
-            %T_mrk = os.T(:,:,1); T_mrk(inds) = NaN;
-            T_mrk = permute(os.T(:,5,:),[3 1 2])'; 
-            subplot(2,2,3), pcolor(T_mrk'), shading flat, colorbar, set(gca,'YDir','reverse');
-            title('Temperature k=1');
-            E_mrk = os.E;
-            E_mrk(inds) = NaN;
-            subplot(2,2,4), pcolor(E_mrk'), shading flat, colorbar
-            %caxis([-1 1])
-            title('Elevation');
-
-            %subplot(2,3,count2), pcolor((E-E0)'), colorbar
-            %caxis([-1.5 1.5]);
-
+            plotState(os, imax, jmax, kmax, depth, layerDepths);
+            
             f = getframe(h);
             %writeVideo(vidObj, f);
         end

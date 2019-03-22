@@ -1,5 +1,5 @@
 % Initialize settings:
-coldStart = 1;
+coldStart = 0;
 initFile = 'init.nc';
 initSample = -1;
 
@@ -66,8 +66,12 @@ adaptDepthField; % Make adjustments to depth field, and set all cell heights.
 
 if coldStart == 0
    
-    [U, V, E, T, S] = loadState(initFile, initSample);
-   
+    [os, nSamples, depth, layerDepths] = loadState(initFile, initSample);
+    os.U_next = zeros(size(os.U));
+    os.V_next = zeros(size(os.V));
+    os.T_next = zeros(size(os.T));
+    os.S_next = zeros(size(os.S));
+    
 end
 
 

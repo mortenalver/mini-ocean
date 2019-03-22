@@ -70,9 +70,12 @@ classdef OceanState
             end
            for i=1:sp.imax
                 for j=1:sp.jmax
+                    lowerDepth = 0;
                     for k=1:sp.kmax-1
+                        lowerDepth = lowerDepth + os.cellHeights(i,j,k);
+                        centerDepth = lowerDepth - 0.5*os.cellHeights(i,j,k);
                         if k<kmm(i,j)
-                            k_w = 0; % TODO: wind effect on vertical mixing
+                            k_w = 0.028*((sp.H_wave.^2)/sp.T_wave)*exp(-0.8*centerDepth/sp.H_wave); 
                             meanCellHeights = 0.5*(os.cellHeights(i,j,k) + os.cellHeights(i,j,k+1));
                             % Calculate the vertical gradient of the
                             % density. If density is increasing downwards
