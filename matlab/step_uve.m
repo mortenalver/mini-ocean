@@ -1,6 +1,6 @@
-function os = step_uve_nopar(os,kmm,sp);
+function os = step_uve_nopar(os,kmm,sp)
 % This function integrates the Navier-Stokes equation with a simple scheme.
-% - Purely 3D, no mode splitting (therefore short time step is required
+% - Purely 3D, no mode splitting (therefore short time step is required)
 %
 % The routine takes U, V and E states at a time t. It calculates and returns
 % vertical speeds W at time t, and updated U, V and E values for time t+dt.
@@ -18,6 +18,9 @@ dx = sp.dx;
 
 % Iterate over layers from top to calculate pressure gradients:
 p_above = sp.p_atm;
+p_diff = zeros(imax, jmax);
+p_gradx = zeros(imax-1,jmax,kmax);
+p_grady = zeros(imax,jmax-1,kmax);
 for k=1:kmax
 
     % Compute pressure differential in whole layer:
@@ -35,11 +38,11 @@ for k=1:kmax
     % gradient is evaluated at the mid height *at the boundary*. This means
     % we need to measure from below in the surface layer, and from above in
     % other layers to find the appropriate pressure.
-    parfor i=1:imax-1
+    for i=1:imax-1
         for j=1:jmax
             % For the gradient to be valid, both bordering cells must be
             % wet. If not, set p_gradx to NaN:
-            if kmm(i,j)<k | kmm(i+1,j)<k
+            if kmm(i,j)<k || kmm(i+1,j)<k
                 p_gradx(i,j,k) = NaN;
             else
                 meanCellHeight = 0.5*(os.cellHeights(i,j,k) + os.cellHeights(i+1,j,k)); % height measured from below
@@ -54,11 +57,11 @@ for k=1:kmax
             end
         end
     end
-    parfor i=1:imax
+    for i=1:imax
         for j=1:jmax-1
             % For the gradient to be valid, both bordering cells must be
             % wet. If not, set p_grady to NaN:
-            if kmm(i,j)<k | kmm(i,j+1)<k
+            if kmm(i,j)<k || kmm(i,j+1)<k
                 p_grady(i,j,k) = NaN;
             else
                 meanCellHeight = 0.5*(os.cellHeights(i,j,k) + os.cellHeights(i,j+1,k)); % height measured from below
@@ -110,11 +113,11 @@ os.E_next(2:end-1,2:end-1) = os.E_next(2:end-1,2:end-1) + sp.dt*os.W(2:end-1,2:e
 % - including Coriolis, but neglecting w term in u equation 
 os.U_next = 0*os.U_next;
 os.V_next = 0*os.V_next;
-parfor i=1:imax-1
+for i=1:imax-1
     for j=1:jmax
         for k=1:kmax
             if isnan(p_gradx(i,j,k))
-                U_next(i,j,k) = 0;
+                os.U_next(i,j,k) = 0;
                 break;
             else
                 U_ij = os.U(i,j,k);
@@ -180,19 +183,19 @@ parfor i=1:imax-1
                         + sp.A_z*d2u_dz2 + sp.A_xy*(d2u_dx2 + d2u_dy2) ... % Eddy viscosity
                         + 2*sp.omega*sin(sp.phi(i,j))*V_mean; % Coriolis
                     
-%                 if (i==2 | i==3) & j == 12 && k==1
-%                     U(i-1:i,j,k)
-%                     U_next(i-1:i,j,k)
+%                 if i==1 && j == 40 && k==2
+%                     os.U(i:i+1,j,k)
+%                     os.U_next(i:i+1,j,k)
 %                 end
             end
         end
     end
 end
-parfor i=1:imax
+for i=1:imax
     for j=1:jmax-1
         for k=1:kmax
             if isnan(p_grady(i,j,k))
-                V_next(i,j,k) = 0;
+                os.V_next(i,j,k) = 0;
                 break;
             else
                 V_ij = os.V(i,j,k);

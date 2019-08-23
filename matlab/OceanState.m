@@ -10,7 +10,7 @@ classdef OceanState
         U_next, V_next, E_next, T_next, S_next
         cellHeights 
         rho
-        K_v
+        K_v, AH
     end
     methods
         
@@ -67,7 +67,7 @@ classdef OceanState
            % the edges, vertically.
            if isempty(os.K_v)
                 os.K_v = zeros(sp.imax,sp.jmax,sp.kmax-1);
-            end
+           end
            for i=1:sp.imax
                 for j=1:sp.jmax
                     lowerDepth = 0;
@@ -88,13 +88,11 @@ classdef OceanState
                             d_U_dz2 = ((meanU_above - meanU_below).^2 + (meanV_above - meanV_below).^2)/meanCellHeights;
                             
                             Ri = (9.81/os.rho(i,j,k))*d_rho_dz/d_U_dz2;
+                            if isnan(Ri)
+                                Ri = 0;
+                            end
                             os.K_v(i,j,k) = sp.KVm*(atan(sp.G_vmix*(sp.Ri0-Ri))/pi + 0.5) + k_w;
-                            
-%                             if i==2 & j==5 & k==3
-%                                 Ri
-%                                 kv = os.K_v(i,j,k)
-%                             end
-                            
+
                         else
                             os.K_v(i,j,k) = 0;
                         end
@@ -104,5 +102,34 @@ classdef OceanState
             
         end
         
+        function os = calcHorizontalDiffusivitySmagorinsky(os, kmm, sp)
+            if isempty(os.AH)
+                os.AH = zeros(sp.imax,sp.jmax,sp.kmax);
+            end
+            amLim= 0.0625*sp.dx.^2/(20*sp.dt);
+            for i=2:sp.imax-1
+                for j=2:sp.jmax-1
+                    for k=1:kmm(i,j)
+                        AM = sp.CM*sp.dx*sp.dx*sqrt(((os.U(i,j,k)-os.U(i-1,j,k))/sp.dx).^2 ...
+                            +((os.V(i,j,k)-os.V(i,j-1,k))/sp.dx).^2 ...
+                            +.5*(.25*(os.U(i-1,j-1,k) + os.U(i-1,j+1,k) - os.U(i,j-1,k) - os.U(i,j+1,k))/sp.dx ...
+                            + .25*(os.V(i-1,j-1,k) + os.V(i+1,j-1,k)- os.V(i-1,j,k) - os.V(i+1,j,k))/sp.dx).^2);
+                        %AM = min(AM,amLim);
+                        
+                        os.AH(i,j,k) = min((sp.CH/sp.CM)*AM, amLim);
+                    end
+                end
+            end
+            os.AH(1,:,:) = os.AH(2,:,:);
+            os.AH(end,:,:) = os.AH(end-1,:,:);
+            os.AH(:,1,:) = os.AH(:,2,:);
+            os.AH(:,end,:) = os.AH(:,end-1,:);
+            os.AH(1,1,:) = os.AH(2,2,:);
+            os.AH(1,end,:) = os.AH(2,end-1,:);
+            os.AH(end,1,:) = os.AH(end-1,2,:);
+            os.AH(end,end,:) = os.AH(end-1,end-1,:);
+            
+            
+        end
     end
 end

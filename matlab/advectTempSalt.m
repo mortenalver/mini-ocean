@@ -9,14 +9,14 @@ dx = sp.dx;
 
 % Basic advection scheme, no subgrid approximations used.
 % We do not modify the outer boundary cells.
-% Turbulent mixing is not done by this routine.
 
 trc_next = trc;
 
-parfor i=2:imax-1
+for i=2:imax-1
     for j=2:jmax-1
         for k=1:kmm(i,j)
             advS = 0;
+
             % Find the cell heights interpolated to the cell boundaries:
             vsize = [0.5*(os.cellHeights(i-1,j,k)+os.cellHeights(i,j,k)) ...
                 0.5*(os.cellHeights(i,j,k)+os.cellHeights(i+1,j,k)) ...
@@ -45,30 +45,51 @@ parfor i=2:imax-1
                     advS = advS - os.W(i,j,k-1)*dx*dx*(trc(i,j,k-1)-trc(i,j,k)); 
                 end
             end
+
+            % Horizontal mixing:
+            % We need to make sure there is no diffusion between this cell
+            % and neighbouring cells that are empty. This can be detected
+            % based on computed cell heights, so we use a vector of flags
+            % to turn each of the four horizontal turns on and off:
+            if sp.trcHorizMix
+                validNb = [os.cellHeights(i-1,j,k)>0 os.cellHeights(i+1,j,k)>0 ...
+                    os.cellHeights(i,j-1,k)>0 os.cellHeights(i,j+1,k)>0];
+                diffU = (validNb(2)*0.5*(os.AH(i,j)+os.AH(i+1,j))*(trc(i+1,j,k)-trc(i,j,k)) ... 
+                    - validNb(1)*0.5*(os.AH(i-1,j)+os.AH(i,j))*(trc(i,j,k)-trc(i-1,j,k))) / (sp.dx.^2);
+                diffV = (validNb(4)*0.5*(os.AH(i,j)+os.AH(i,j+1))*(trc(i,j+1,k)-trc(i,j,k)) ... 
+                    - validNb(3)*0.5*(os.AH(i,j-1)+os.AH(i,j))*(trc(i,j,k)-trc(i,j-1,k))) / (sp.dx.^2);
+            else
+                diffU = 0;
+                diffV = 0;
+            end
             
             % Vertical mixing:
-            v_here = trc(i,j,k);
-            if k==1
-                v_above = v_here;
-                dz_up = 1;
-                kv_above = 0;
+            if sp.trcVertMix
+                v_here = trc(i,j,k);
+                if k==1
+                    v_above = v_here;
+                    dz_up = 1;
+                    kv_above = 0;
+                else
+                    v_above = trc(i,j,k-1);
+                    dz_up = 0.5*(os.cellHeights(i,j,k)+os.cellHeights(i,j,k-1));
+                    kv_above = os.K_v(i,j,k-1);
+                end
+                if k==kmm(i,j)
+                    v_below = v_here;
+                    dz_down = 1;
+                    kv_below = 0;
+                else
+                    v_below = trc(i,j,k+1);
+                    dz_down = 0.5*(os.cellHeights(i,j,k)+os.cellHeights(i,j,k+1));
+                    kv_below = os.K_v(i,j,k);
+                end
+                diffS = (kv_above*(v_above-v_here)/dz_up - kv_below*(v_here - v_below)/dz_down)/(0.5*(dz_up+dz_down));
             else
-                v_above = trc(i,j,k-1);
-                dz_up = 0.5*(os.cellHeights(i,j,k)+os.cellHeights(i,j,k-1));
-                kv_above = os.K_v(i,j,k-1);
+                diffS = 0;
             end
-            if k==kmm(i,j)
-                v_below = v_here;
-                dz_down = 1;
-                kv_below = 0;
-            else
-                v_below = trc(i,j,k+1);
-                dz_down = 0.5*(os.cellHeights(i,j,k)+os.cellHeights(i,j,k+1));
-                kv_below = os.K_v(i,j,k);
-            end
-            diffS = (kv_above*(v_above-v_here)/dz_up - kv_below*(v_here - v_below)/dz_down)/(0.5*(dz_up+dz_down));
             
-            trc_next(i,j,k) = trc(i,j,k) + sp.dt*advS/(dx*dx*os.cellHeights(i,j,k)) + sp.dt*diffS;
+            trc_next(i,j,k) = trc(i,j,k) + sp.dt*advS/(dx*dx*os.cellHeights(i,j,k)) + sp.dt*(diffS + diffU + diffV);
         end
     end
 end

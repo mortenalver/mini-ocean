@@ -3,6 +3,7 @@ jmax = 16;
 kmax = 7;
 dx = 4000; % Horizontal resolution (x/y) (m)
 dz = [5; 5; 10; 10; 10; 20; 20]; % Vertical size of layers (m)
+sp.dt = 2.5; % Time step (s)
 init_grid;
         
 depth = [80*ones(imax,ceil(jmax/2)) 40*ones(imax,floor(jmax/2))];

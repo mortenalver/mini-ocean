@@ -1,48 +1,70 @@
-%e_val = 1*cos(sample*dt/750);
-e_val = 0.25;
-% E(1,:) = 0.5*e_val*ones(jmax,1);
-% E(end,:) = -0.5*e_val*ones(jmax,1);
-% for i=1:imax-1
-%     E(i,1) = e_val*(imax*0.5-i)/imax;
-%     E(i,end) = e_val*(imax*0.5-i)/imax;
-% end
+% Set outer bounds (for E, U, V, T and S) depending on which scenario we are running:
+switch sp.scenario
+    case 'load depths'
+        
+    case 'upwelling'
+        vv = 0.25;
+        os.E(:,1) = 0.5*vv;
+        for j=1:sp.jmax
+            os.E(end,j) = vv*((sp.jmax-j)/sp.jmax - 0.5);
+            os.E(1,j) = vv*((sp.jmax-j)/sp.jmax - 0.5);
+        end
+        os.T(1,:,:) = os.T(2,:,:);
+        os.T(end,:,:) = os.T(end-1,:,:);
+        os.T(:,1,:) = os.T(:,2,:);
+        os.S(1,:,:) = os.S(2,:,:);
+        os.S(end,:,:) = os.S(end-1,:,:);
+        os.S(:,1,:) = os.S(:,2,:);
+        
+        os.U(:,1,:) = os.U(:,2,:);
+        os.U(1,:,:) = os.U(2,:,:);
+        os.V(1,:,:) = os.V(2,:,:);
+        os.U(end,:,:) = os.U(end-1,:,:);
+        os.V(end,:,:) = os.V(end-1,:,:);
+    case 'simple fjord'
+        
+    case 'C-fjord'
+             
+    case 'bottomEffect'
+        ev = 0.1;
+        for i=1:imax
+            os.E(i,1) = ev*(1-(i-1)/imax);
+            os.E(i,end) = ev*(-(i-1)/imax);
+        end
+        for j=1:jmax
+            os.E(1,j) = ev*(1-( j-1)/jmax);
+            os.E(end,j) = ev*(-(j-1)/jmax);
+        end
+        %os.E(end,:) = -ev;
+        %os.E(1,:) = ev;
+        
+        os.U(1,:,:) = 0.14;%0.2;
+        os.U(end,:,:) = 0.14;%0.2;
+        os.U(:,1,:) = 0.14;%0.2;
+        os.U(:,end,:) = 0.14;%0.2;
+        os.V(1,:,:) = 0.14;
+        os.V(end,:,:) = 0.14;
+        os.V(:,1,:) = 0.14;
+        os.V(:,end,:) = 0.14;
+        
+        os.T(1,:,:) = os.T(2,:,:);
+        os.T(end,:,:) = os.T(end-1,:,:);
+        os.T(:,1,:) = os.T(:,2,:);
+        os.T(:,end,:) = os.T(:,end-1,:);
+        
+        os.S(1,:,:) = os.S(2,:,:);
+        os.S(end,:,:) = os.S(end-1,:,:);
+        os.S(:,1,:) = os.S(:,2,:);
+        os.S(:,end,:) = os.S(:,end-1,:);
+    case 'channel'
+        os.U(1,:,:) = 0.25;
+        os.U(end,:,:) = 0.25;
+        os.V(1,:,:) = 0;
+        os.V(end,:,:) = 0;
+        os.E(1,:) = 0.2;
+        os.E(end,:) = -0.2;
 
-os.E(1,:) = sin(1*sample*sp.dt*2*pi/(12*3600));
-%E(1,1:8) = sin(1*sample*sp.dt*2*pi/(12*3600));
-%E(1,9:end) = 0*E(1,9:end);
+        
+end
 
-% E(1,:) = E(2,:);
-% E(imax,:) = E(imax-1,:);
-% E(:,1) = E(:,2);
-% E(:,jmax) = E(:,jmax-1);
 
-%U(1,:,:) = U(2,:,:);
-
-% U(1,:,:) = 0.2*ones(size(U(1,:,:)));
-% interv = floor(jmax/4):floor(3*jmax/4);
-% U(1,interv,:) = 0.17*ones(size(U(1,interv,:)));
-% U(imax-1,:,:) = 0.2*ones(size(U(imax-1,:,:)));
-% U(:,1,:) = 0.2*ones(size(U(:,1,:)));
-% U(:,jmax,:) = 0.2*ones(size(U(:,jmax,:)));
-% 
-% V(1,:,:) = 0*ones(size(V(1,:,:)));
-% V(imax,:,:) = -0*.1*ones(size(V(imax,:,:)));
-% for i=1:imax
-%     V(i,1,:) = (0.15*i/imax)*ones(size(V(i,1,:)));
-%     V(i,jmax-1,:) = -0*(0.1*i/imax)*ones(size(V(i,jmax-1,:)));
-% end
-% 
-% for k=1:kmax
-%     S(1,:,k) = s_int(k)*ones(size(S(1,:,k)));
-%     S(imax,:,k) = s_int(k)*ones(size(S(imax,:,k)));
-%     S(:,1,k) = (s_int(k)-2)*ones(size(S(:,1,k)));
-%     S(:,jmax,k) = s_int(k)*ones(size(S(:,jmax,k)));
-%     
-%     %interv = floor(1.5*jmax/4):floor(2.5*jmax/4);
-%     %S(1,interv,k) = (s_int(k)-1)*ones(size(S(1,interv,k)));
-%     
-%     T(1,:,k) = t_int(k)*ones(size(T(1,:,k)));
-%     T(imax,:,k) = t_int(k)*ones(size(T(imax,:,k)));
-%     T(:,1,k) = (t_int(k)-2)*ones(size(T(:,1,k)));
-%     T(:,jmax,k) = t_int(k)*ones(size(T(:,jmax,k)));
-% end

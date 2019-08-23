@@ -1,12 +1,13 @@
-imax = 20;
-jmax = 10;
-kmax = 9;
+imax = 40;
+jmax = 30;
+kmax = 12;
 dx = 1000; % Horizontal resolution (x/y) (m)
-dz = [5; 5; 10; 10; 20; 20; 20; 20; 50]; % Vertical size of layers (m)
+dz = [5; 5; 5; 5; 10; 10; 10; 20; 20; 30; 50; 50]; % Vertical size of layers (m)
+sp.dt = 1; % Time step (s)
 init_grid;
         
 depth = 150*ones(imax,jmax);
-dd = [0 50 90 120 140];
+dd = [0 60 110 130 150];
 
 jinds = floor(jmax*0.45):ceil(jmax*0.55);
 iinds = 1:floor(imax*0.2);
@@ -22,9 +23,9 @@ depth(iinds,jinds) = 45*ones(size(depth(iinds,jinds)));
 
 
 % Initialize hydrography with measured profile:
-profDepths = [0 2 4 6 8 10 15 20 25 30 40];
-temp = [12 11.5 11 10.5 10.2 10.1 10 9.9 9.8 9.75 9.74];
-salt = [20 21 22 23 25 26 30 31 31.5 31.88 31.885];
+profDepths = [0 2 4 6 8 10 15 20 25 30 40 100 200];
+temp = [12 11.5 11 10.5 10.2 10.1 10 9.9 9.8 9.75 9.74 9.74 9.74];
+salt = [20 21 22 23 25 26 30 31 31.5 31.88 31.885 31.885 31.885];
 %temp = (9.71 + 12) - temp;
 %salt = (20+31.885) - salt;
 % Intepolate measurements to mid layer depths:
@@ -38,6 +39,10 @@ for i=1:imax
 
         % 3D variables:
         for k=1:kmax
+            if i<imax
+                os.U(i,j,k) = 0.01;
+            end
+
             os.T(i,j,k) = t_int(k);
             os.S(i,j,k) = s_int(k);
         end

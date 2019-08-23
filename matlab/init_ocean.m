@@ -1,32 +1,32 @@
-% Initialize settings:
-coldStart = 0;
-initFile = 'init.nc';
-initSample = -1;
-
-scenario = 'simple fjord';
-%scenario = 'C-fjord';
-%scenario = 'load depths';
 
 % Initialize depth matrix:
 minBotLayerDepth = 1; % Adjust depth matrix so the bottom layer is at least  this thick
 
 
-switch scenario
+switch sp.scenario
     case 'load depths'
-        imax = 60;
-        jmax = 50;
-        kmax = 5;
-        dx = 4000; % Horizontal resolution (x/y) (m)
-        dz = [5; 5; 10; 10; 10; 20; 20]; % Vertical size of layers (m)
+        kmax = 12;
+        dx = 20000; % Horizontal resolution (x/y) (m)
+        dz = [20; 30; 50; 100; 200; 300; 300; 500; 500; 500; 500; 500]; % Vertical size of layers (m)
+        sp.dt = 2.5; %2.5; % Time step (s)
+        ginX = 70:120;
+        ginY = 35:55;
+        imax = length(ginX);
+        jmax = 2*length(ginY);
         init_grid;
-        load depthdata;
-        depthdata(isnan(depthdata)) = 11;
-        depth = -45 + depthdata(1:imax, 1:jmax)/2;
-
+        load gin_depth;
+        depth = gin_depth(ginX,ginY);
+        depth(isnan(depth)) = 0;
+        depth = depth;%*0.35;
+        depth = [depth flipud(fliplr(depth))];
+        %depth(:,end) = 0;
+        %depth(:,end-1) = 30;
+        %depth(:,end-2) = 80;
+        
         % Initialize hydrography with measured profile:
-        profDepths = [0 2 4 6 8 10 15 20 25 30 40];
-        temp = [12 11.5 11 10.5 10.2 10.1 10 9.9 9.8 9.75 9.74];
-        salt = [20 21 22 23 25 26 30 31 31.5 31.88 31.885];
+        profDepths = [0 10 30 60 100 500 1000 5000];
+        temp = [8 7 6 5 4.5 4.2 4.1 4];
+        salt = [33 33.5 33.9 34.4 34.6 34.6 34.6 34.6];
         % Intepolate measurements to mid layer depths:
         t_int = interp1(profDepths, temp, midLayerDepths,'linear','extrap');
         s_int = interp1(profDepths, salt, midLayerDepths,'linear','extrap');
@@ -45,14 +45,20 @@ switch scenario
         end
 
         % Freshwater
-        riverXY = [];
-        riverS = [];
-        riverT = [];
-        riverFlow = []; % m3/s
+        riverXY = [2 2; 24 3; 9 35; 21 39];
+        riverS = [0; 0; 0; 0];
+        riverT = [12; 12; 12; 12];
+        riverFlow = [1000; 1000; 1000; 1000]; % m3/s
+    case 'upwelling'
+        initIdealLS;
     case 'simple fjord'
         initFjord;
     case 'C-fjord'
         initCFjord;
+    case 'bottomEffect'
+        initBottomEffect;
+    case 'channel'
+        initChannel;
 end
 % Copy grid sizes into sp struct for passing into functions:
 sp.imax = imax;
@@ -61,12 +67,11 @@ sp.kmax = kmax;
 sp.dx = dx;
 adaptDepthField; % Make adjustments to depth field, and set all cell heights.
 
+riverN = size(riverXY,1);
 
-
-
-if coldStart == 0
+if sp.coldStart == 0
    
-    [os, nSamples, depth, layerDepths] = loadState(initFile, initSample);
+    [os, nSamples, depth, layerDepths] = loadState(sp.initFile, sp.initSample);
     os.U_next = zeros(size(os.U));
     os.V_next = zeros(size(os.V));
     os.T_next = zeros(size(os.T));

@@ -35,7 +35,7 @@ for k=1:kmax
     % gradient is evaluated at the mid height *at the boundary*. This means
     % we need to measure from below in the surface layer, and from above in
     % other layers to find the appropriate pressure.
-    for i=1:imax-1
+    parfor i=1:imax-1
         for j=1:jmax
             % For the gradient to be valid, both bordering cells must be
             % wet. If not, set p_gradx to NaN:
@@ -54,7 +54,7 @@ for k=1:kmax
             end
         end
     end
-    for i=1:imax
+    parfor i=1:imax
         for j=1:jmax-1
             % For the gradient to be valid, both bordering cells must be
             % wet. If not, set p_grady to NaN:
@@ -110,7 +110,7 @@ os.E_next(2:end-1,2:end-1) = os.E_next(2:end-1,2:end-1) + sp.dt*os.W(2:end-1,2:e
 % - including Coriolis, but neglecting w term in u equation 
 os.U_next = 0*os.U_next;
 os.V_next = 0*os.V_next;
-for i=1:imax-1
+parfor i=1:imax-1
     for j=1:jmax
         for k=1:kmax
             if isnan(p_gradx(i,j,k))
@@ -188,7 +188,7 @@ for i=1:imax-1
         end
     end
 end
-for i=1:imax
+parfor i=1:imax
     for j=1:jmax-1
         for k=1:kmax
             if isnan(p_grady(i,j,k))
