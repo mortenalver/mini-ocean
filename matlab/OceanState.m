@@ -8,9 +8,11 @@ classdef OceanState
     properties
         U, V, E, W, T, S
         U_next, V_next, E_next, T_next, S_next
+        X
         cellHeights 
         rho
         K_v, AH
+        windU, windV
     end
     methods
         

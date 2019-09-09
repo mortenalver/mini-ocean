@@ -1,4 +1,4 @@
-function os = step_uve_nopar(os,kmm,sp)
+function os = step_uve_subgrid(os,kmm,sp)
 % This function integrates the Navier-Stokes equation with a simple scheme.
 % - Purely 3D, no mode splitting (therefore short time step is required)
 %
@@ -17,10 +17,10 @@ kmax = sp.kmax;
 dx = sp.dx;
 
 % Iterate over layers from top to calculate pressure gradients:
-p_above = sp.p_atm;
-p_diff = zeros(imax, jmax);
-p_gradx = zeros(imax-1,jmax,kmax);
-p_grady = zeros(imax,jmax-1,kmax);
+p_above = sp.p_atm; % During iteration, p_above contains the pressure at the bottom of the cells above the current layer
+p_diff = zeros(imax, jmax); % During iteration, p_diff contains the added pressure caused by the water in the cells of the current layer
+p_gradx = zeros(imax-1,jmax,kmax); % Horizontal pressure gradients along x axis
+p_grady = zeros(imax,jmax-1,kmax); % Horizontal pressure gradients along y axis
 for k=1:kmax
 
     % Compute pressure differential in whole layer:
@@ -59,6 +59,7 @@ for k=1:kmax
     end
     for i=1:imax
         for j=1:jmax-1
+
             % For the gradient to be valid, both bordering cells must be
             % wet. If not, set p_grady to NaN:
             if kmm(i,j)<k || kmm(i,j+1)<k
@@ -176,17 +177,30 @@ for i=1:imax-1
                 % Estimate the local d2u/dy2 (double derivative):
                 d2u_dy2 = (getUV(os.U,i,j-1,k,U_ij) - 2*U_ij + getUV(os.U,i,j+1,k,U_ij))/(dx*dx);
                 
+                % Calculate the advection (nonlinear) terms using the
+                % Superbee flux limiter to limit oscillations while
+                % suppressing numerical diffusion:
+                advU = superbeeAdv(sp.dt, dx, getUV(os.U,i-2,j,k,U_ij), getUV(os.U,i-1,j,k,U_ij), U_ij, ...
+                    getUV(os.U,i+1,j,k,U_ij), getUV(os.U,i+2,j,k,U_ij), U_ij, U_ij);              
+                advV = superbeeAdv(sp.dt, dx, getUV(os.U,i,j-2,k,U_ij), getUV(os.U,i,j-1,k,U_ij), U_ij, ...
+                    getUV(os.U,i,j+1,k,U_ij), getUV(os.U,i,j+2,k,U_ij), V_mean, V_mean);      
+                advW = superbeeAdv(sp.dt, dx, getUV(os.U,i,j,k-2,U_ij), getUV(os.U,i,j,k-1,U_ij), U_ij, ...
+                    getUV(os.U,i,j,k+1,U_ij), getUV(os.U,i,j+2,k+2,U_ij), W_mean, W_mean);
+                            
+%                 if i==20 & j==20 & k==3
+%                     sbA = [advU advV advW]
+%                     normA = -[U_ij*dudx V_mean*dudy W_mean*dudz]
+%                     1;
+%                 end
+                                
                 % Calculate updated U value:
                 os.U_next(i,j,k) = U_ij ...
                     + sp.dt*(-p_gradx(i,j,k)/sp.rho_0 ... % Pressure term
-                        - U_ij*dudx - V_mean*dudy - W_mean*dudz) ... % Advective terms
-                        + sp.A_z*d2u_dz2 + sp.A_xy*(d2u_dx2 + d2u_dy2) ... % Eddy viscosity
-                        + 2*sp.omega*sin(sp.phi(i,j))*V_mean; % Coriolis
+                        + advU + advV + advW ...
+                        + sp.A_z*d2u_dz2 + os.AH(i,j,k)*(d2u_dx2 + d2u_dy2) ... % Eddy viscosity
+                        + 2*sp.omega*sin(sp.phi(i,j))*V_mean); % Coriolis
                     
-%                 if i==1 && j == 40 && k==2
-%                     os.U(i:i+1,j,k)
-%                     os.U_next(i:i+1,j,k)
-%                 end
+                    %- U_ij*dudx - V_mean*dudy - W_mean*dudz) ... % Advective terms
             end
         end
     end
@@ -251,13 +265,31 @@ for i=1:imax
                 % Estimate the local d2v/dy2 (double derivative):
                 d2v_dy2 = (getUV(os.V,i,j-1,k,V_ij) - 2*V_ij + getUV(os.V,i,j+1,k,V_ij))/(dx*dx);
                 
+                % Calculate the advection (nonlinear) terms using the
+                % Superbee flux limiter to limit oscillations while
+                % suppressing numerical diffusion:
+                advU = superbeeAdv(sp.dt, dx, getUV(os.V,i-2,j,k,V_ij), getUV(os.V,i-1,j,k,V_ij), V_ij, ...
+                    getUV(os.V,i+1,j,k,V_ij), getUV(os.V,i+2,j,k,V_ij), U_mean, U_mean);               
+                advV = superbeeAdv(sp.dt, dx, getUV(os.V,i,j-2,k,V_ij), getUV(os.V,i,j-1,k,V_ij), V_ij, ...
+                    getUV(os.V,i,j+1,k,V_ij), getUV(os.V,i,j+2,k,V_ij), V_ij, V_ij);
+                advW = superbeeAdv(sp.dt, dx, getUV(os.V,i,j,k-2,V_ij), getUV(os.V,i,j,k-1,V_ij), V_ij, ...
+                    getUV(os.V,i,j,k+1,V_ij), getUV(os.V,i,j+2,k+2,V_ij), W_mean, W_mean);  
+                
+%                  if i==20 & j==20 & k==3
+%                      sbA = [advU advV advW]
+%                      normA = -[U_mean*dvdx V_ij*dvdy W_mean*dvdz]
+%                      1;
+%                  end
+
                 % Calculate updated V value:
                 os.V_next(i,j,k) = os.V(i,j,k) ...
                     + sp.dt*(-p_grady(i,j,k)/sp.rho_0 ... % Pressure term
-                        - V_ij*dvdy - U_mean*dvdx - W_mean*dvdz) ... % Advective terms
-                        + sp.A_z*d2v_dz2 + sp.A_xy*(d2v_dx2 + d2v_dy2) ... % Eddy viscosity
-                        - 2*sp.omega*sin(sp.phi(i,j))*U_mean; % Coriolis
+                        + advU + advV + advW ... % Advective terms
+                        + sp.A_z*d2v_dz2 + os.AH(i,j,k)*(d2v_dx2 + d2v_dy2) ... % Eddy viscosity
+                        - 2*sp.omega*sin(sp.phi(i,j))*U_mean); % Coriolis
                     
+                    
+                    %- V_ij*dvdy - U_mean*dvdx - W_mean*dvdz) ... % Advective terms
             end
         end
     end

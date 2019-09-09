@@ -20,7 +20,8 @@ os.V = zeros(imax,jmax-1,kmax);
 os.W = zeros(imax,jmax,kmax+1);
 os.T = zeros(imax,jmax,kmax);
 os.S = zeros(imax,jmax,kmax);
-
+os.windU = zeros(imax,jmax);
+os.windV = zeros(imax,jmax);
 
 % ---------------------------------------------------------------------------
 % Some temporary variables:

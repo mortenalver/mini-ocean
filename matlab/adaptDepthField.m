@@ -5,7 +5,6 @@ for i=1:imax
     for j=1:jmax
         %distance = 2*sqrt(((i-imax/2)/imax).^2 + ((j-jmax/2)/jmax).^2);
         %depth(i,j) = 50;% - 10./(1+exp(-1*(distance-0.5)));
-
         if depth(i,j) == 0
             dzz(i,j,1) = 0;
             kmm(i,j) = 0;
@@ -23,8 +22,11 @@ for i=1:imax
                 end
                 kmm(i,j) = k;
                 break;
-            end
-            
+            end  
+        end
+        if depth(i,j)>0 & kmm(i,j)==0 % Bathymetry exceeds maximum model depth
+            depth(i,j) = layerDepths(kmax);
+            kmm(i,j) = kmax;
         end
     end
 end

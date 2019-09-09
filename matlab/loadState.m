@@ -24,5 +24,7 @@ os.E = netcdf.getVar(ncid, netcdf.inqVarID(ncid, 'E'), [0 0 sample], [imax jmax 
 os.T = netcdf.getVar(ncid, netcdf.inqVarID(ncid, 'T'), [0 0 0 sample], [imax jmax kmax 1]);
 os.S = netcdf.getVar(ncid, netcdf.inqVarID(ncid, 'S'), [0 0 0 sample], [imax jmax kmax 1]);
 os.W = zeros(imax,jmax,kmax+1);
+os.windU = zeros(imax,jmax);
+os.windV = zeros(imax,jmax);
 layerDepths = netcdf.getVar(ncid, netcdf.inqVarID(ncid, 'zc'));
 depth = netcdf.getVar(ncid, netcdf.inqVarID(ncid, 'depth'));

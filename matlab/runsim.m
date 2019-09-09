@@ -1,28 +1,29 @@
 function runsim();
    
-global h1 h2;
+global h1 h2 h3;
 
 % -------------------------------------------------------------------
 % Configuration:
 % -------------------------------------------------------------------
+sp.scenario = 'channel';
+%sp.scenario = 'real';
+%sp.scenario = 'open';
+%sp.scenario = 'turbChannel';
 %sp.scenario = 'simple fjord';
 %sp.scenario = 'upwelling';
 %sp.scenario = 'C-fjord';
-%sp.scenario = 'load depths';
-%sp.scenario = 'bottomEffect';
-sp.scenario = 'channel';
 
 % Initialize settings:
-sp.coldStart = 1;
-sp.initFile = 'upwelling.nc';
+sp.coldStart = 0;
+sp.initFile = 'channel.nc';
 sp.initSample = -1;
 
 % Plot settings:
-plotInt = 5;
+plotInt = -10;
 infoInt = 50;
 
 % Model configuration:
-updateMixingInt = 5; % Time steps between updating mixing coeffs
+updateMixingInt = 25; % Time steps between updating mixing coeffs
 % -------------------------------------------------------------------
 
 
@@ -31,6 +32,10 @@ c =clock;
 tic
 init_ocean;
 init_simparam;
+
+if sp.passiveTracer > 0
+   init_passive_tracer; 
+end
 
 % Open file to store model states in:
 ncid = initSaveFile(sp.filename,imax,jmax,kmax,depth,layerDepths);
@@ -43,19 +48,28 @@ firstPl = 1;
 saveInt = sp.saveIntS/sp.dt;
 saveCount = 0;
 count = 0; count2 = 0; countInfo=0; countMix=0;
+lastAtmoUpd = -1;
 nSamples = floor(sp.t_end/sp.dt);
 if plotInt > 0
    h1 = figure;
    h2 = figure;
+   h3 = figure;
 end
 
 % Main simulation loop, one cycle per model time step:
 for sample=1:nSamples
-
+    time = sample*sp.dt;
+    
     % -------------------------------------------------------------------
     % The following section handles the stepping of the whole model:
     % -------------------------------------------------------------------
     set_bounds; % Update boundary values
+    
+    if lastAtmoUpd < 0 | time-lastAtmoUpd >= sp.atmoUpdateInterval 
+        lastAtmoUpd = time;
+        atmo; % Update wind forcing
+    end
+    
     os = frsZone(os, kmm, dzz, sp); % Then adjust the FRS zone by linearly interpolating between boundary
                            % values and values inside.
 
@@ -79,12 +93,15 @@ for sample=1:nSamples
     
     % Integrate the U, V and E states into U_next, V_next and E_next,
     % and calculate W from the current U and V values:
-    os = step_uve_nopar(os,kmm,sp);
+    os = step_uve(os,kmm,sp);
     
     % Call advection function for temperature and salinity:
-    T_next = advectTempSalt_nopar(os.T,os,kmm,sp);
-    S_next = advectTempSalt_nopar(os.S,os,kmm,sp);
-    
+    T_next = advectTempSalt(os.T,os,kmm,sp);
+    S_next = advectTempSalt(os.S,os,kmm,sp);
+    if sp.passiveTracer
+       X_next = advectTempSalt(os.X,os,kmm,sp);
+       X_next = addPassiveTracer(X_next,os,kmm,sp);
+    end
     % ---------------------------------------------------------------
     % At this point, U, V, W, T and S are "in sync", since W was
     % calculated based on U and V.
@@ -98,7 +115,9 @@ for sample=1:nSamples
     os.U = os.U_next;
     os.V = os.V_next;
     os.E = os.E_next;
-    
+    if sp.passiveTracer
+       os.X = X_next;
+    end
     % -------------------------------------------------------------------
     % The following section handles saving and plotting:
     % -------------------------------------------------------------------
