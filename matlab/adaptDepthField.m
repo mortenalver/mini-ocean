@@ -30,3 +30,23 @@ for i=1:imax
         end
     end
 end
+
+% Set up maskU and maskV:
+for i=1:imax-1
+    for j=1:jmax
+        for k=1:kmax
+            if kmm(i,j) >= k & kmm(i+1,j) >= k
+                os.maskU(i,j,k) = 1;
+            end  
+        end
+    end
+end
+for i=1:imax
+    for j=1:jmax-1
+        for k=1:kmax
+            if kmm(i,j) >= k & kmm(i,j+1) >= k
+                os.maskV(i,j,k) = 1;
+            end  
+        end
+    end
+end

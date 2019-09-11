@@ -9,7 +9,7 @@ classdef OceanState
         U, V, E, W, T, S
         U_next, V_next, E_next, T_next, S_next
         X
-        cellHeights 
+        cellHeights, maskU, maskV
         rho
         K_v, AH
         windU, windV

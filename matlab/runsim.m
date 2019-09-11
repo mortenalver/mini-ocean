@@ -5,16 +5,16 @@ global h1 h2 h3;
 % -------------------------------------------------------------------
 % Configuration:
 % -------------------------------------------------------------------
-sp.scenario = 'channel';
+%sp.scenario = 'channel';
 %sp.scenario = 'real';
-%sp.scenario = 'open';
+sp.scenario = 'open';
 %sp.scenario = 'turbChannel';
 %sp.scenario = 'simple fjord';
 %sp.scenario = 'upwelling';
 %sp.scenario = 'C-fjord';
 
 % Initialize settings:
-sp.coldStart = 0;
+sp.coldStart = 1;
 sp.initFile = 'channel.nc';
 sp.initSample = -1;
 
@@ -160,6 +160,8 @@ for sample=1:nSamples
         end
     end
 end
+
+saveState(sp.filename, imax, jmax, kmax, sp.dt*sample, os);
 
 toc
 %close(vidObj);

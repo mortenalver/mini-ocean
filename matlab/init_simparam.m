@@ -2,9 +2,11 @@
 sp.freshwaterOn = 0;
 sp.coriolisOn = 0;
 sp.atmoOn = 0;
+sp.biharmonic = 1; % 1 to use biharmonic friction of horizontal velocities. 0 to use Smagorinsky
 sp.trcVertMix = 1;
 sp.trcHorizMix = 1;
 sp.passiveTracer = 0;
+
 
 % Time and storage:
 sp.t_end = 3600*24*5 + 30;%3600*24*30+60; % Duration of simulation
@@ -50,3 +52,4 @@ sp.CH = 0.4;
 %sp.A_xy = 0.0001*2e5;%0.2e6; %1e5; % NOT USED, Smagorinsky is used instead. Horizontal eddy viscosity.
 sp.A_z = 10*1e-2; % Vertical eddy viscosity
 
+sp.KBi = 4.e9; % From SINMOD (ocean.f90): Biharmonic constant  (for 4 km grid)

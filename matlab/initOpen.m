@@ -39,8 +39,12 @@ for i=1:imax
     for j=1:jmax
         % 3D variables:
         for k=1:kmax
+            
+            if i<imax
+                os.U(i,j,k) = -0.05;
+            end
             os.T(i,j,k) = temp(k);
-            os.S(i,j,k) = salt(k) + saltdiff*(i/imax)*4*exp(-(midLayerDepths(k)-5)/10);
+            os.S(i,j,k) = salt(k) + saltdiff*(i/imax)*exp(-(midLayerDepths(k)-5)/10);
             
         end
     end

@@ -42,7 +42,7 @@ for k=1:kmax
         for j=1:jmax
             % For the gradient to be valid, both bordering cells must be
             % wet. If not, set p_gradx to NaN:
-            if kmm(i,j)<k || kmm(i+1,j)<k
+            if os.maskU(i,j,k)==0 %kmm(i,j)<k || kmm(i+1,j)<k
                 p_gradx(i,j,k) = NaN;
             else
                 meanCellHeight = 0.5*(os.cellHeights(i,j,k) + os.cellHeights(i+1,j,k)); % height measured from below
@@ -62,7 +62,7 @@ for k=1:kmax
 
             % For the gradient to be valid, both bordering cells must be
             % wet. If not, set p_grady to NaN:
-            if kmm(i,j)<k || kmm(i,j+1)<k
+            if os.maskV(i,j,k)==0 %kmm(i,j)<k || kmm(i,j+1)<k
                 p_grady(i,j,k) = NaN;
             else
                 meanCellHeight = 0.5*(os.cellHeights(i,j,k) + os.cellHeights(i,j+1,k)); % height measured from below
@@ -117,7 +117,7 @@ os.V_next = 0*os.V_next;
 for i=1:imax-1
     for j=1:jmax
         for k=1:kmax
-            if isnan(p_gradx(i,j,k))
+            if os.maskU(i,j,k)==0 %isnan(p_gradx(i,j,k))
                 os.U_next(i,j,k) = 0;
                 break;
             else
@@ -172,10 +172,19 @@ for i=1:imax-1
                     dz_down = os.cellHeights(i,j,k);
                 end
                 d2u_dz2 = ((getUV(os.U,i,j,k-1,U_ij) - U_ij)/dz_up - (U_ij - getUV(os.U,i,j,k+1,U_ij))/dz_down)/(0.5*(dz_up+dz_down));
-                % Estimate the local d2u/dx2 (double derivative):
-                d2u_dx2 = (getUV(os.U,i-1,j,k,U_ij) - 2*U_ij + getUV(os.U,i+1,j,k,U_ij))/(dx*dx);
-                % Estimate the local d2u/dy2 (double derivative):
-                d2u_dy2 = (getUV(os.U,i,j-1,k,U_ij) - 2*U_ij + getUV(os.U,i,j+1,k,U_ij))/(dx*dx);
+                
+                if sp.biharmonic > 0
+                    % if biharmonic is activated the diffusion is handled
+                    % later, so we set diffusion to 0 here:
+                    horizontalDiffusion = 0;
+                else
+                    % Estimate the local d2u/dx2 (double derivative):
+                    d2u_dx2 = (getUV(os.U,i-1,j,k,U_ij) - 2*U_ij + getUV(os.U,i+1,j,k,U_ij))/(dx*dx);
+                    % Estimate the local d2u/dy2 (double derivative):
+                    d2u_dy2 = (getUV(os.U,i,j-1,k,U_ij) - 2*U_ij + getUV(os.U,i,j+1,k,U_ij))/(dx*dx);
+                    % Calculate diffusion term:   
+                    horizontalDiffusion = os.AH(i,j,k)*(d2u_dx2 + d2u_dy2);
+                end
                 
                 % Calculate the advection (nonlinear) terms using the
                 % Superbee flux limiter to limit oscillations while
@@ -192,12 +201,13 @@ for i=1:imax-1
 %                     normA = -[U_ij*dudx V_mean*dudy W_mean*dudz]
 %                     1;
 %                 end
-                                
+                 
+               
                 % Calculate updated U value:
                 os.U_next(i,j,k) = U_ij ...
                     + sp.dt*(-p_gradx(i,j,k)/sp.rho_0 ... % Pressure term
                         + advU + advV + advW ...
-                        + sp.A_z*d2u_dz2 + os.AH(i,j,k)*(d2u_dx2 + d2u_dy2) ... % Eddy viscosity
+                        + sp.A_z*d2u_dz2 + horizontalDiffusion ... % Eddy viscosity
                         + 2*sp.omega*sin(sp.phi(i,j))*V_mean); % Coriolis
                     
                     %- U_ij*dudx - V_mean*dudy - W_mean*dudz) ... % Advective terms
@@ -208,7 +218,7 @@ end
 for i=1:imax
     for j=1:jmax-1
         for k=1:kmax
-            if isnan(p_grady(i,j,k))
+            if os.maskV(i,j,k)==0 %isnan(p_grady(i,j,k))
                 os.V_next(i,j,k) = 0;
                 break;
             else
@@ -260,10 +270,21 @@ for i=1:imax
                     dz_down = os.cellHeights(i,j,k);
                 end
                 d2v_dz2 = ((getUV(os.V,i,j,k-1,V_ij) - V_ij)/dz_up - (V_ij - getUV(os.V,i,j,k+1,V_ij))/dz_down)/(0.5*(dz_up+dz_down));
-                % Estimate the local d2v/dx2 (double derivative):
-                d2v_dx2 = (getUV(os.V,i-1,j,k,V_ij) - 2*V_ij + getUV(os.V,i+1,j,k,V_ij))/(dx*dx);
-                % Estimate the local d2v/dy2 (double derivative):
-                d2v_dy2 = (getUV(os.V,i,j-1,k,V_ij) - 2*V_ij + getUV(os.V,i,j+1,k,V_ij))/(dx*dx);
+                
+                if sp.biharmonic > 0
+                    % if biharmonic is activated the diffusion is handled
+                    % later, so we set diffusion to 0 here:
+                    horizontalDiffusion = 0;
+                else
+                    % Estimate the local d2v/dx2 (double derivative):
+                    d2v_dx2 = (getUV(os.V,i-1,j,k,V_ij) - 2*V_ij + getUV(os.V,i+1,j,k,V_ij))/(dx*dx);
+                    % Estimate the local d2v/dy2 (double derivative):
+                    d2v_dy2 = (getUV(os.V,i,j-1,k,V_ij) - 2*V_ij + getUV(os.V,i,j+1,k,V_ij))/(dx*dx);
+                    % Calculate the diffusion term:
+                    horizontalDiffusion = os.AH(i,j,k)*(d2v_dx2 + d2v_dy2);
+                end
+                
+                
                 
                 % Calculate the advection (nonlinear) terms using the
                 % Superbee flux limiter to limit oscillations while
@@ -285,7 +306,7 @@ for i=1:imax
                 os.V_next(i,j,k) = os.V(i,j,k) ...
                     + sp.dt*(-p_grady(i,j,k)/sp.rho_0 ... % Pressure term
                         + advU + advV + advW ... % Advective terms
-                        + sp.A_z*d2v_dz2 + os.AH(i,j,k)*(d2v_dx2 + d2v_dy2) ... % Eddy viscosity
+                        + sp.A_z*d2v_dz2 + horizontalDiffusion ... % Eddy viscosity
                         - 2*sp.omega*sin(sp.phi(i,j))*U_mean); % Coriolis
                     
                     
@@ -294,7 +315,14 @@ for i=1:imax
         end
     end
 end     
-    
+   
+% Calculate and apply biharmonic friction coefficients:
+if sp.biharmonic > 0
+    [diffU, diffV] = biharmon(os, kmm,sp);
+    os.U_next = os.U_next - sp.dt*diffU;
+    os.V_next = os.V_next - sp.dt*diffV;
+end
+
 % Wind stress and bottom friction, U:
 for i=1:imax-1
     for j=1:jmax

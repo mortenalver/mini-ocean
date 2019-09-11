@@ -148,26 +148,6 @@ switch sp.scenario
     case 'C-fjord'
              
     case 'open'
-        ev = 0.25;
-        for i=1:imax
-            os.E(i,1) = ev*(1-(i-1)/imax);
-            os.E(i,end) = ev*(-(i-1)/imax);
-        end
-        for j=1:jmax
-            os.E(1,j) = ev*(1-( j-1)/jmax);
-            os.E(end,j) = ev*(-(j-1)/jmax);
-        end
-        
-        os.T(1,:,:) = os.T(2,:,:);
-        os.T(end,:,:) = os.T(end-1,:,:);
-        os.T(:,1,:) = os.T(:,2,:);
-        os.T(:,end,:) = os.T(:,end-1,:);
-        
-        os.S(1,:,:) = os.S(2,:,:);
-        os.S(end,:,:) = os.S(end-1,:,:);
-        os.S(:,1,:) = os.S(:,2,:);
-        os.S(:,end,:) = os.S(:,end-1,:);
-
         os.U(1,:,:) = os.U(2,:,:);
         os.U(:,1,:) = os.U(:,2,:);
         os.U(:,end,:) = os.U(:,end-1,:);

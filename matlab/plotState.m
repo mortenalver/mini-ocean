@@ -70,7 +70,7 @@ pcolor(snitt), colorbar, shading flat;
 title('Elevation');
 subs = 1;
 border=2;
-kval = [1 4 7 10];
+kval = [1 4 7 9];
 contourLevs = [25 50 75];%[200 500 1000 1500];
 for i=1:length(kval)
     k = kval(i);
@@ -93,9 +93,9 @@ for i=1:length(kval)
     
     hold off;
     pcolor(t1', t2', sqrt(uu.^2 + vv.^2)'), shading flat, colorbar
-    hold on, quiver(t1'+subs*0.5,t2'+subs*0.5, uu',vv',6,'k'); %mesh(U(:,:,1)');
+    hold on, quiver(t1'+subs*0.5,t2'+subs*0.5, uu',vv',2,'k'); %mesh(U(:,:,1)');
     [contr, hh] = contour(dpt',contourLevs,'k');
-    caxis([0 0.8]);
+    caxis([0 0.1]);
     title(['Current k=' num2str(k)]);
     
 %     figure(h3);
